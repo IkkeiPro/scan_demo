@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=0.1, maximum-scale=4,user-scalable=yes">
+<link th:href="@{/css/scan2.css}" rel="stylesheet"></link>
+<!-- quaggaJSの読み込み -->
+<script type="text/javascript" th:src="@{/js/quagga.min.js}"></script>
+<script>
+var DetectedCount=0,DetectedCode="";
+var video,tmp,tmp_ctx,jan,prev,prev_ctx,w,h,mw,mh,x1,y1;
+var array_id = new Array('4562355173953', '4901005555310','4901005512672','4901005532656','4901005540095','4901005540101','4901005521308','4901005521322','4901005521315','4901005521094');
+var array_name = new Array('butter peanuts', 'glico','pocky chocolate','bisco','karu jaga','karu satsuma','pretz uma salad','pretz salad butter','tomato pretz','pretz osatsu');
+var CursorCnt=0,cursor1="",cursor2=""
+
+window.addEventListener('load',function(event){
+  video=document.createElement('video');
+  video.setAttribute("autoplay","");
+  video.setAttribute("muted","");
+  video.setAttribute("playsinline","");
+  video.onloadedmetadata = function(e){video.play();};
+  prev=document.getElementById("preview");
+  prev_ctx=prev.getContext("2d");
+  tmp = document.createElement('canvas');
+  tmp_ctx = tmp.getContext("2d");
+  jan=document.getElementById("jan");
+
+  //カメラ使用の許可ダイアログが表示される
+  navigator.mediaDevices.getUserMedia(
+    //マイクはオフ, カメラの設定   背面カメラを希望する 640×480を希望する
+    {"audio":false,"video":{"facingMode":"environment","width":{"ideal":640},"height":{"ideal":480}}}
+    //{"audio":false,"video":{"facingMode":"environment","width":{"ideal":150},"height":{"ideal":640}}}
+  ).then( //許可された場合
+    function(stream){
+	  
+    	document.getElementById("inp_Id[0]").value = array_id[0];
+    	document.getElementById("inp_Name[0]").value = array_name[0];
+    	document.getElementById("inp_Id[1]").value = array_id[1];
+    	document.getElementById("inp_Name[1]").value = array_name[1];
+    	document.getElementById("inp_Id[2]").value = array_id[2];
+    	document.getElementById("inp_Name[2]").value = array_name[2];
+    	document.getElementById("inp_Id[3]").value = array_id[3];
+    	document.getElementById("inp_Name[3]").value = array_name[3];
+    	document.getElementById("inp_Id[4]").value = array_id[4];
+    	document.getElementById("inp_Name[4]").value = array_name[4];
+    	document.getElementById("inp_Id[5]").value = array_id[5];
+    	document.getElementById("inp_Name[5]").value = array_name[5];
+    	document.getElementById("inp_Id[6]").value = array_id[6];
+    	document.getElementById("inp_Name[6]").value = array_name[6];
+    	document.getElementById("inp_Id[7]").value = array_id[7];
+    	document.getElementById("inp_Name[7]").value = array_name[7];
+    	document.getElementById("inp_Id[8]").value = array_id[8];
+    	document.getElementById("inp_Name[8]").value = array_name[8];
+    	document.getElementById("inp_Id[9]").value = array_id[9];
+    	document.getElementById("inp_Name[9]").value = array_name[9];
+	  
+      video.srcObject = stream;
+
+      //0.5秒毎にスキャンする
+      setTimeout(Scan,500,true);
+    }
+  ).catch( //許可されなかった場合
+    function(err){jan.value+=err+'\n';}
+  );
+
+  function Scan(first){
+    if(first){
+		setTimeout(function() {
+		　console.log("1秒経過しました");}, 10000);
+		//選択された幅高さ
+		//w=video.videoWidth;
+		//h=video.videoHeight;
+		w=640;
+		h=480;
+		//画面上の表示サイズ
+		prev.style.width=(w/2)+"px";
+		prev.style.height=(h/2)+"px";
+		//内部のサイズ
+		prev.setAttribute("width",w);
+		prev.setAttribute("height",h);
+		mw=w*0.5;
+		mh=w*0.2;
+		x1=(w-mw)/2;
+		y1=(h-mh)/2;
+    }
+    prev_ctx.drawImage(video,0,0,w,h);
+    prev_ctx.beginPath();
+    prev_ctx.strokeStyle="rgb(255,0,0)";
+    prev_ctx.lineWidth=2;
+    prev_ctx.rect(x1,y1,mw,mh);
+    prev_ctx.stroke();
+    tmp.setAttribute("width",mw);
+    tmp.setAttribute("height",mh);
+    tmp_ctx.drawImage(prev,x1,y1,mw,mh,0,0,mw,mh);
+
+    tmp.toBlob(function(blob){
+      let reader = new FileReader();
+      reader.onload=function(){
+        let config={
+          decoder: {
+            readers: ["ean_reader","ean_8_reader"],
+            multiple: false, //同時に複数のバーコードを解析しない
+          },
+          locator:{patchSize:"large",halfSample:false},
+          locate:false,
+          src:reader.result,
+        };
+        Quagga.decodeSingle(config,function(){});
+      }
+      reader.readAsDataURL(blob);
+    });
+    setTimeout(Scan,50,false);
+  }
+
+  Quagga.onDetected(function (result) {
+    //読み取り誤差が多いため、3回連続で同じ値だった場合に成功とする
+    if(DetectedCode==result.codeResult.code){
+      DetectedCount++;
+    }else{
+      DetectedCount=0;
+      DetectedCode=result.codeResult.code;
+    }
+    if(DetectedCount>=3){
+    	CursorCnt = 0
+    	array_id.forEach(function(item, index, array) {
+  		        cursor1 = "inp_Check[" + index + "]";
+  		        cursor2 = "tr[" + index + "]";
+    			if(item==result.codeResult.code){
+    	    		  console.log(item, index)
+    	    		  document.getElementById(cursor1).checked=true;
+    	    		  document.getElementById(cursor1).focus();
+    	    		  document.getElementById(cursor2).style.backgroundColor="#9f9";
+    	    		  CursorCnt++;
+    			}else{
+  	    		  document.getElementById(cursor2).style.backgroundColor="white";
+    			}
+    		});
+	    if(CursorCnt==0){
+	    	alert("一覧にないJANコードです。");
+	    }
+      console.log(result.codeResult.code);
+      jan.value=result.codeResult.code;
+      jan.scrollTop=jan.scrollHeight;
+      DetectedCode='';
+      DetectedCount=0;
+    }
+  });
+});
+function setFocus(idname){
+	  //引数で受取ったID名のコントロールにフォーカスをセットする
+	  document.getElementById(idname).focus();
+	}
+</script>
+</head>
+<body>
+  <div><canvas id="preview"></canvas></div>
+  <textarea id="jan" rows="1" cols="40"></textarea>
+  <table>
+	<colgroup span="2"></colgroup>
+	<!-- 👇3列目を装飾 -->
+	<colgroup span="1" class="col-blue"></colgroup>
+	<tr>
+	  <th  class="col_Id">JANコード</th> <th class="col_Name">商品名</th> <th class="col_Check">☑</th>
+	</tr>
+	<tr id="tr[0]">
+	  <td class="col_Id"><input type="text" class="inp_Id" id="inp_Id[0]"  readonly="readonly"></td>
+	  <td class="col_Name"><input type="text" class="inp_Name" id="inp_Name[0]"  readonly="readonly"></td>
+	  <td class="col_Check"><input type="checkbox" class="inp_Check" id="inp_Check[0]" maxlength="1"></td>
+	</tr>
+	<tr id="tr[1]">
+	  <td class="col_Id"><input type="text" class="inp_Id" id="inp_Id[1]"  readonly="readonly"></td>
+	  <td class="col_Name"><input type="text" class="inp_Name" id="inp_Name[1]"  readonly="readonly"></td>
+	  <td class="col_Check"><input type="checkbox" class="inp_Check" id="inp_Check[1]" maxlength="1"></td>
+	</tr>
+	<tr id="tr[2]">
+	  <td class="col_Id"><input type="text" class="inp_Id" id="inp_Id[2]"  readonly="readonly"></td>
+	  <td class="col_Name"><input type="text" class="inp_Name" id="inp_Name[2]"  readonly="readonly"></td>
+	  <td class="col_Check"><input type="checkbox" class="inp_Check" id="inp_Check[2]" maxlength="1"></td>
+	</tr>
+	<tr id="tr[3]">
+	  <td class="col_Id"><input type="text" class="inp_Id" id="inp_Id[3]"  readonly="readonly"></td>
+	  <td class="col_Name"><input type="text" class="inp_Name" id="inp_Name[3]"  readonly="readonly"></td>
+	  <td class="col_Check"><input type="checkbox" class="inp_Check" id="inp_Check[3]" maxlength="1"></td>
+	</tr>
+	<tr id="tr[4]">
+	  <td class="col_Id"><input type="text" class="inp_Id" id="inp_Id[4]"  readonly="readonly"></td>
+	  <td class="col_Name"><input type="text" class="inp_Name" id="inp_Name[4]"  readonly="readonly"></td>
+	  <td class="col_Check"><input type="checkbox" class="inp_Check" id="inp_Check[4]" maxlength="1"></td>
+	</tr>
+	<tr id="tr[5]">
+	  <td class="col_Id"><input type="text" class="inp_Id" id="inp_Id[5]"  readonly="readonly"></td>
+	  <td class="col_Name"><input type="text" class="inp_Name" id="inp_Name[5]"  readonly="readonly"></td>
+	  <td class="col_Check"><input type="checkbox" class="inp_Check" id="inp_Check[5]" maxlength="1"></td>
+	</tr>
+	<tr id="tr[6]">
+	  <td class="col_Id"><input type="text" class="inp_Id" id="inp_Id[6]"  readonly="readonly"></td>
+	  <td class="col_Name"><input type="text" class="inp_Name" id="inp_Name[6]"  readonly="readonly"></td>
+	  <td class="col_Check"><input type="checkbox" class="inp_Check" id="inp_Check[6]" maxlength="1"></td>
+	</tr>
+	<tr id="tr[7]">
+	  <td class="col_Id"><input type="text" class="inp_Id" id="inp_Id[7]"  readonly="readonly"></td>
+	  <td class="col_Name"><input type="text" class="inp_Name" id="inp_Name[7]"  readonly="readonly"></td>
+	  <td class="col_Check"><input type="checkbox" class="inp_Check" id="inp_Check[7]" maxlength="1"></td>
+	</tr>
+	<tr id="tr[8]">
+	  <td class="col_Id"><input type="text" class="inp_Id" id="inp_Id[8]"  readonly="readonly"></td>
+	  <td class="col_Name"><input type="text" class="inp_Name" id="inp_Name[8]"  readonly="readonly"></td>
+	  <td class="col_Check"><input type="checkbox" class="inp_Check" id="inp_Check[8]" maxlength="1"></td>
+	</tr>
+	<tr id="tr[9]">
+	  <td class="col_Id"><input type="text" class="inp_Id" id="inp_Id[9]"  readonly="readonly"></td>
+	  <td class="col_Name"><input type="text" class="inp_Name" id="inp_Name[9]"  readonly="readonly"></td>
+	  <td class="col_Check"><input type="checkbox" class="inp_Check" id="inp_Check[9]" maxlength="1"></td>
+	</tr>
+  </table>
+</body>
+</html>

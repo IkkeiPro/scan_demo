@@ -1,0 +1,57 @@
+/*
+canvas{
+	display: none;
+}
+textarea{
+	display: none;
+}
+*/
+table {
+  border-collapse: collapse;
+  width: 350px; /* 幅 */
+}
+th, td {
+  padding: 5px 15px;
+  border: solid 1px #333;
+}
+
+.col_Id{
+  width: 100px; /* 幅 */
+	
+}
+td.col_Id{
+  font-size: 10px;
+	
+}
+.col_Name{
+  width: 200px; /* 幅 */
+	
+}
+td.col_Name{
+  font-size: 10px;
+	
+}
+.col_Check{
+  width: 50px; /* 幅 */
+	
+}
+.inp_Check{
+  width: 10px; /* 幅 */
+  height: 15px;
+  font-size: 10px;
+}
+.inp_Id{
+  width: 80px; /* 幅 */
+  height: 15px;
+  font-size: 10px;
+}
+.inp_Name{
+  width: 140px; /* 幅 */
+  height: 15px;
+  font-size: 10px;
+}
+
+input:focus{
+background-color: #9f9;
+	
+}
